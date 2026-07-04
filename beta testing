@@ -1,0 +1,330 @@
+
+/**
+ * essent Help Hub — main help center page
+ * Shortcode: [essent_help_hub]
+ * v5 — two-tier color fade:
+ *   - icon badge: bold 70% color / 30% gray diagonal fade
+ *   - whole card: subtle 40% color / 60% gray diagonal fade, same corner origin
+ */
+
+function essent_help_hub_enqueue_icons() {
+    wp_enqueue_style(
+        'essent-help-tabler-icons',
+        'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css',
+        array(),
+        null
+    );
+}
+
+function essent_help_hub_shortcode() {
+    essent_help_hub_enqueue_icons();
+    ob_start();
+    ?>
+
+    <div class="essent-help-hub">
+
+        <div class="essent-help-hub__header">
+            <h1 class="essent-help-hub__title">მხარდაჭერის ცენტრი</h1>
+            <p class="essent-help-hub__subtitle">აქ ყველანაირ კითხვაზე პასუხს წამებში იპოვი</p>
+        </div>
+
+        <div class="essent-help-hub__grid">
+
+            <a href="/dabruneba-garantia/" class="essent-help-card essent-help-card--green" data-keywords="დაბრუნება გარანტია policy refund warranty">
+                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--green">
+                    <i class="ti ti-rotate essent-help-card__icon"></i>
+                </span>
+                <div class="essent-help-card__title">ხარისხი და გარანტია</div>
+                <div class="essent-help-card__desc">გაქვს კითხვები პროდუქტის ხარისხზე, ავთენტურობაზე ან გარანტიაზე?</div>
+            </a>
+
+            <a href="/ndoba-usaprtkhoeba/" class="essent-help-card essent-help-card--green" data-keywords="ნდობა უსაფრთხოება reviews trust security">
+                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--green">
+                    <i class="ti ti-shield-check essent-help-card__icon"></i>
+                </span>
+                <div class="essent-help-card__title">ნდობა და უსაფრთხოება</div>
+                <div class="essent-help-card__desc">შეკვეთები, შეფასებები, მომხმარებლები და ნდობის ფაქტორი.</div>
+            </a>
+
+            <a href="/dakavshirdit/" class="essent-help-card essent-help-card--blue" data-keywords="შეკვეთა tracking ტრექინგი სტატუსი">
+                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--blue">
+                    <i class="ti ti-truck essent-help-card__icon"></i>
+                </span>
+                <div class="essent-help-card__title">სად არის ჩემი შეკვეთა?</div>
+                <div class="essent-help-card__desc">შეკვეთის სტატუსი და მიტანის დრო</div>
+            </a>
+
+            <a href="/ხშირად-დასმული-კითხვები/" class="essent-help-card essent-help-card--orange" data-keywords="FAQ კითხვები გადახდა მიწოდება">
+                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--orange">
+                    <i class="ti ti-help-circle essent-help-card__icon"></i>
+                </span>
+                <div class="essent-help-card__title">ხშირად დასმული კითხვები</div>
+                <div class="essent-help-card__desc">აქ იპოვი ნებისმიერ სხვა კითხვაზე პასუხს</div>
+            </a>
+
+            <a href="/dakavshirdit/" class="essent-help-card essent-help-card--purple" data-keywords="AI ასისტენტი chat ჩატი bot">
+                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--purple">
+                    <i class="ti ti-message-chatbot essent-help-card__icon"></i>
+                </span>
+                <div class="essent-help-card__title">AI ასისტენტი</div>
+                <div class="essent-help-card__desc">დაუსვი ნებისმიერი კითხვა</div>
+            </a>
+
+            <a href="/dakavshirdit/" class="essent-help-card" data-keywords="კონტაქტი დაკავშირება call messenger phone">
+                <span class="essent-help-card__icon-wrap">
+                    <i class="ti ti-headset essent-help-card__icon"></i>
+                </span>
+                <div class="essent-help-card__title">დაგვიკავშირდით</div>
+                <div class="essent-help-card__desc">live ჩატი, ზარი ან ფორმა</div>
+            </a>
+
+        </div>
+
+        <div class="essent-help-hub__search">
+            <i class="ti ti-search essent-help-hub__search-icon"></i>
+            <input
+                type="text"
+                id="essent-help-search"
+                class="essent-help-hub__search-input"
+                placeholder="მოძებნე..."
+                autocomplete="off"
+            />
+        </div>
+
+    </div>
+
+    <style>
+        .essent-help-hub {
+            --essent-accent: #e8392f;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 2.5rem 1rem 3.5rem;
+        }
+
+        .essent-help-hub__header {
+            text-align: center;
+            margin-bottom: 2.25rem;
+        }
+
+        .essent-help-hub__title {
+            font-size: 30px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .essent-help-hub__subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.55);
+            margin: 0;
+        }
+
+        .essent-help-hub__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .essent-help-hub__grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+        }
+
+        .essent-help-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            background: rgba(255, 255, 255, 0.045);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 16px;
+            padding: 22px 18px;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+            overflow: hidden;
+        }
+
+        .essent-help-card--hidden {
+            display: none !important;
+        }
+
+        /* Base sheen, present on every card regardless of category */
+        .essent-help-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 55%);
+            pointer-events: none;
+        }
+
+        .essent-help-card:hover {
+            border-color: rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.07);
+            transform: translateY(-3px);
+        }
+
+        /* ===== Whole-card tint — subtle, 40% color / 60% gray, same top-left origin ===== */
+
+        .essent-help-card--green {
+            background: linear-gradient(135deg, rgba(94, 212, 154, 0.16) 0%, rgba(255, 255, 255, 0.045) 70%);
+        }
+        .essent-help-card--green:hover {
+            background: linear-gradient(135deg, rgba(94, 212, 154, 0.22) 0%, rgba(255, 255, 255, 0.07) 70%);
+        }
+
+        .essent-help-card--blue {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.16) 0%, rgba(255, 255, 255, 0.045) 70%);
+        }
+        .essent-help-card--blue:hover {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.22) 0%, rgba(255, 255, 255, 0.07) 70%);
+        }
+
+        .essent-help-card--orange {
+            background: linear-gradient(135deg, rgba(255, 168, 92, 0.16) 0%, rgba(255, 255, 255, 0.045) 70%);
+        }
+        .essent-help-card--orange:hover {
+            background: linear-gradient(135deg, rgba(255, 168, 92, 0.22) 0%, rgba(255, 255, 255, 0.07) 70%);
+        }
+
+        .essent-help-card--purple {
+            background: linear-gradient(135deg, rgba(168, 120, 255, 0.16) 0%, rgba(255, 255, 255, 0.045) 70%);
+        }
+        .essent-help-card--purple:hover {
+            background: linear-gradient(135deg, rgba(168, 120, 255, 0.22) 0%, rgba(255, 255, 255, 0.07) 70%);
+        }
+
+        .essent-help-card__icon-wrap {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            transition: filter 0.2s ease, border-color 0.2s ease;
+        }
+
+        /* ===== Icon badge tint — bold, 70% color / 30% gray, same top-left origin ===== */
+
+        .essent-help-card__icon-wrap--purple {
+            background: linear-gradient(135deg, rgba(168, 120, 255, 0.70) 0%, rgba(255, 255, 255, 0.07) 55%);
+            border-color: rgba(168, 120, 255, 0.45);
+        }
+
+        .essent-help-card__icon-wrap--green {
+            background: linear-gradient(135deg, rgba(94, 212, 154, 0.70) 0%, rgba(255, 255, 255, 0.07) 55%);
+            border-color: rgba(94, 212, 154, 0.42);
+        }
+
+        .essent-help-card__icon-wrap--blue {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.70) 0%, rgba(255, 255, 255, 0.07) 55%);
+            border-color: rgba(96, 165, 250, 0.45);
+        }
+
+        .essent-help-card__icon-wrap--orange {
+            background: linear-gradient(135deg, rgba(255, 168, 92, 0.70) 0%, rgba(255, 255, 255, 0.07) 55%);
+            border-color: rgba(255, 168, 92, 0.45);
+        }
+
+        .essent-help-card:hover .essent-help-card__icon-wrap {
+            filter: brightness(1.2);
+        }
+
+        .essent-help-card__icon {
+            font-size: 22px;
+            color: #ffffff;
+            display: block;
+        }
+
+        .essent-help-card__title {
+            font-weight: 600;
+            font-size: 16px;
+            line-height: 1.3;
+            color: #ffffff;
+            margin-bottom: 5px;
+            letter-spacing: -0.005em;
+        }
+
+        .essent-help-card__desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.4;
+        }
+
+        .essent-help-hub__search {
+            position: relative;
+            max-width: 420px;
+            margin: 2.25rem auto 0;
+        }
+
+        .essent-help-hub__search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .essent-help-hub__search-input {
+            width: 100%;
+            height: 50px;
+            padding: 0 18px 0 46px;
+            background: rgba(255, 255, 255, 0.045);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 14px;
+            color: #ffffff;
+            font-size: 15px;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .essent-help-hub__search-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .essent-help-hub__search-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.07);
+        }
+    </style>
+
+    <script>
+        (function () {
+            var input = document.getElementById('essent-help-search');
+            if (!input) return;
+
+            var cards = document.querySelectorAll('.essent-help-card');
+
+            input.addEventListener('input', function () {
+                var query = input.value.trim().toLowerCase();
+
+                cards.forEach(function (card) {
+                    var haystack = (
+                        card.querySelector('.essent-help-card__title').textContent + ' ' +
+                        card.querySelector('.essent-help-card__desc').textContent + ' ' +
+                        (card.getAttribute('data-keywords') || '')
+                    ).toLowerCase();
+
+                    var match = query === '' || haystack.indexOf(query) !== -1;
+                    card.classList.toggle('essent-help-card--hidden', !match);
+                });
+            });
+        })();
+    </script>
+
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('essent_help_hub', 'essent_help_hub_shortcode');
