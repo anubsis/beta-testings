@@ -1,330 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coastline — Live Beach Crowd Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep-sea:#0b2b3a;
+    --deep-sea-2:#0f3a4d;
+    --sand:#f3e6c9;
+    --sand-dim:#d9c9a3;
+    --coral:#ff6b4a;
+    --seafoam:#4fd1a5;
+    --amber:#ffb648;
+    --ink:#0b1c22;
+    --panel:#0e3242e6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:'Inter',sans-serif;background:var(--deep-sea);color:var(--sand);}
+  #map{position:absolute;inset:0;filter:saturate(0.9);}
+  .leaflet-tile-pane{filter:hue-rotate(-6deg) brightness(0.85) contrast(1.05);}
 
-/**
- * essent Help Hub — main help center page
- * Shortcode: [essent_help_hub]
- * v5 — two-tier color fade:
- *   - icon badge: bold 70% color / 30% gray diagonal fade
- *   - whole card: subtle 40% color / 60% gray diagonal fade, same corner origin
- */
+  .topbar{
+    position:absolute;top:0;left:0;right:0;z-index:1000;
+    padding:18px 22px 14px;
+    background:linear-gradient(180deg, rgba(11,27,34,0.92) 0%, rgba(11,27,34,0.55) 70%, rgba(11,27,34,0) 100%);
+    pointer-events:none;
+  }
+  .topbar *{pointer-events:auto;}
+  .eyebrow{
+    font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--seafoam); font-weight:600; margin:0 0 4px;
+  }
+  h1{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-weight:800; font-size:26px; margin:0; letter-spacing:-0.01em;
+    color:var(--sand);
+  }
+  .sub{font-size:13px; color:var(--sand-dim); margin-top:4px;}
 
-function essent_help_hub_enqueue_icons() {
-    wp_enqueue_style(
-        'essent-help-tabler-icons',
-        'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css',
-        array(),
-        null
-    );
+  .legend{
+    position:absolute; left:16px; bottom:16px; z-index:1000;
+    background:var(--panel); backdrop-filter:blur(10px);
+    border:1px solid rgba(243,230,201,0.15);
+    border-radius:14px; padding:14px 16px; width:190px;
+    font-size:12.5px;
+  }
+  .legend h3{margin:0 0 10px; font-family:'Bricolage Grotesque',sans-serif; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--sand-dim); font-weight:600;}
+  .legend-row{display:flex; align-items:center; gap:9px; margin-bottom:7px;}
+  .dot{width:11px; height:11px; border-radius:50%; flex-shrink:0;}
+  .legend small{display:block; color:var(--sand-dim); margin-top:8px; line-height:1.4;}
+
+  .panel{
+    position:absolute; right:16px; top:96px; z-index:1000;
+    width:260px; background:var(--panel); backdrop-filter:blur(10px);
+    border:1px solid rgba(243,230,201,0.15); border-radius:16px;
+    padding:18px; transform:translateX(320px); transition:transform 0.35s cubic-bezier(.2,.8,.2,1);
+  }
+  .panel.open{transform:translateX(0);}
+  .panel .zone-name{font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:18px; margin:0 0 2px;}
+  .panel .zone-meta{font-size:12px; color:var(--sand-dim); margin-bottom:14px;}
+  .level-badge{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;
+    margin-bottom:14px;
+  }
+  .bar-track{height:6px; border-radius:4px; background:rgba(243,230,201,0.15); overflow:hidden; margin-bottom:16px;}
+  .bar-fill{height:100%; border-radius:4px; transition:width 0.4s ease;}
+  .report-label{font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--sand-dim); margin-bottom:8px;}
+  .report-buttons{display:flex; gap:6px;}
+  .rbtn{
+    flex:1; border:1px solid rgba(243,230,201,0.2); background:transparent; color:var(--sand);
+    padding:8px 4px; border-radius:9px; font-size:11.5px; cursor:pointer; font-family:inherit;
+    transition:all 0.15s;
+  }
+  .rbtn:hover{background:rgba(243,230,201,0.1); transform:translateY(-1px);}
+  .close-x{position:absolute; top:14px; right:16px; cursor:pointer; color:var(--sand-dim); font-size:16px; background:none; border:none;}
+  .updated{font-size:10.5px; color:var(--sand-dim); margin-top:12px; opacity:0.7;}
+
+  .crowd-marker{
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Bricolage Grotesque',sans-serif; font-weight:800; color:#0b1c22;
+    box-shadow:0 0 0 4px rgba(255,255,255,0.08), 0 4px 14px rgba(0,0,0,0.4);
+    border:2px solid rgba(255,255,255,0.5);
+  }
+  .pulse{
+    position:absolute; inset:0; border-radius:50%; opacity:0.55;
+    animation:pulse 2.2s ease-out infinite;
+  }
+  @keyframes pulse{
+    0%{transform:scale(0.9); opacity:0.5;}
+    100%{transform:scale(2.1); opacity:0;}
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="topbar">
+  <p class="eyebrow">Adjara Coastline · Live</p>
+  <h1>How crowded is the beach?</h1>
+  <p class="sub">Tap a zone to see current density and report what you see</p>
+</div>
+
+<div class="legend">
+  <h3>Crowd level</h3>
+  <div class="legend-row"><span class="dot" style="background:#4fd1a5"></span> Quiet</div>
+  <div class="legend-row"><span class="dot" style="background:#ffb648"></span> Moderate</div>
+  <div class="legend-row"><span class="dot" style="background:#ff6b4a"></span> Packed</div>
+  <small>Marker size = relative crowd size. Data refreshes from visitor reports every few minutes.</small>
+</div>
+
+<div class="panel" id="panel">
+  <button class="close-x" id="closePanel">✕</button>
+  <p class="zone-name" id="pZoneName">—</p>
+  <p class="zone-meta" id="pZoneMeta">—</p>
+  <div class="level-badge" id="pBadge">—</div>
+  <div class="bar-track"><div class="bar-fill" id="pBar"></div></div>
+  <p class="report-label">Report what you see</p>
+  <div class="report-buttons">
+    <button class="rbtn" data-level="1">🟢 Quiet</button>
+    <button class="rbtn" data-level="2">🟡 Moderate</button>
+    <button class="rbtn" data-level="3">🔴 Packed</button>
+  </div>
+  <p class="updated" id="pUpdated"></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------- DATA MODEL ----------
+  Beach zone = { id, name, lat, lng, level (1-3), reportCount, lastUpdated }
+  In production this comes from a /zones endpoint backed by a table like:
+    beach_zones(id, name, lat, lng, city)
+    crowd_reports(id, zone_id, level, source['user'|'cv'], created_at)
+  Current level per zone = weighted average of reports in last ~2hrs,
+  decaying toward "unknown" if no reports come in.
+------------------------------------ */
+
+const zones = [
+  { id: 'batumi-boulevard', name: 'Batumi Boulevard Beach', city: 'Batumi', lat: 41.6580, lng: 41.6360, level: 3, reportCount: 42, lastUpdated: '4 min ago' },
+  { id: 'batumi-old-town',  name: 'Old Town Beach',         city: 'Batumi', lat: 41.6450, lng: 41.6390, level: 2, reportCount: 18, lastUpdated: '11 min ago' },
+  { id: 'batumi-north',     name: 'Batumi North (Tamari)',  city: 'Batumi', lat: 41.6750, lng: 41.6320, level: 2, reportCount: 9,  lastUpdated: '22 min ago' },
+  { id: 'gonio',            name: 'Gonio Beach',            city: 'Gonio',  lat: 41.5860, lng: 41.5680, level: 1, reportCount: 6,  lastUpdated: '35 min ago' },
+  { id: 'kobuleti-central', name: 'Kobuleti Central Beach', city: 'Kobuleti', lat: 41.8180, lng: 41.7770, level: 3, reportCount: 27, lastUpdated: '7 min ago' },
+  { id: 'kobuleti-north',   name: 'Kobuleti North',         city: 'Kobuleti', lat: 41.8420, lng: 41.7860, level: 1, reportCount: 5,  lastUpdated: '41 min ago' },
+  { id: 'ureki',            name: 'Ureki Beach',            city: 'Ureki',  lat: 41.9450, lng: 41.7920, level: 2, reportCount: 13, lastUpdated: '18 min ago' },
+];
+
+const levelStyle = {
+  1: { color:'#4fd1a5', label:'Quiet',    size:34 },
+  2: { color:'#ffb648', label:'Moderate', size:42 },
+  3: { color:'#ff6b4a', label:'Packed',   size:52 },
+};
+
+const map = L.map('map', { zoomControl:false, attributionControl:false }).setView([41.75, 41.70], 10.3);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  maxZoom:19, subdomains:'abcd'
+}).addTo(map);
+L.control.zoom({ position:'bottomright' }).addTo(map);
+
+const panel = document.getElementById('panel');
+let activeZoneId = null;
+
+function markerHtml(level){
+  const s = levelStyle[level];
+  return `
+    <div style="position:relative; width:${s.size}px; height:${s.size}px;">
+      <div class="pulse" style="background:${s.color};"></div>
+      <div class="crowd-marker" style="width:${s.size}px;height:${s.size}px;background:${s.color};font-size:${s.size*0.32}px;">
+        ${'●'.repeat(level)}
+      </div>
+    </div>`;
 }
 
-function essent_help_hub_shortcode() {
-    essent_help_hub_enqueue_icons();
-    ob_start();
-    ?>
+const markers = {};
+zones.forEach(z => {
+  const icon = L.divIcon({ html: markerHtml(z.level), className:'', iconSize:[0,0] });
+  const m = L.marker([z.lat, z.lng], { icon }).addTo(map);
+  m.on('click', () => openPanel(z.id));
+  markers[z.id] = m;
+});
 
-    <div class="essent-help-hub">
-
-        <div class="essent-help-hub__header">
-            <h1 class="essent-help-hub__title">მხარდაჭერის ცენტრი</h1>
-            <p class="essent-help-hub__subtitle">აქ ყველანაირ კითხვაზე პასუხს წამებში იპოვი</p>
-        </div>
-
-        <div class="essent-help-hub__grid">
-
-            <a href="/dabruneba-garantia/" class="essent-help-card essent-help-card--green" data-keywords="დაბრუნება გარანტია policy refund warranty">
-                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--green">
-                    <i class="ti ti-rotate essent-help-card__icon"></i>
-                </span>
-                <div class="essent-help-card__title">ხარისხი და გარანტია</div>
-                <div class="essent-help-card__desc">გაქვს კითხვები პროდუქტის ხარისხზე, ავთენტურობაზე ან გარანტიაზე?</div>
-            </a>
-
-            <a href="/ndoba-usaprtkhoeba/" class="essent-help-card essent-help-card--green" data-keywords="ნდობა უსაფრთხოება reviews trust security">
-                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--green">
-                    <i class="ti ti-shield-check essent-help-card__icon"></i>
-                </span>
-                <div class="essent-help-card__title">ნდობა და უსაფრთხოება</div>
-                <div class="essent-help-card__desc">შეკვეთები, შეფასებები, მომხმარებლები და ნდობის ფაქტორი.</div>
-            </a>
-
-            <a href="/dakavshirdit/" class="essent-help-card essent-help-card--blue" data-keywords="შეკვეთა tracking ტრექინგი სტატუსი">
-                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--blue">
-                    <i class="ti ti-truck essent-help-card__icon"></i>
-                </span>
-                <div class="essent-help-card__title">სად არის ჩემი შეკვეთა?</div>
-                <div class="essent-help-card__desc">შეკვეთის სტატუსი და მიტანის დრო</div>
-            </a>
-
-            <a href="/ხშირად-დასმული-კითხვები/" class="essent-help-card essent-help-card--orange" data-keywords="FAQ კითხვები გადახდა მიწოდება">
-                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--orange">
-                    <i class="ti ti-help-circle essent-help-card__icon"></i>
-                </span>
-                <div class="essent-help-card__title">ხშირად დასმული კითხვები</div>
-                <div class="essent-help-card__desc">აქ იპოვი ნებისმიერ სხვა კითხვაზე პასუხს</div>
-            </a>
-
-            <a href="/dakavshirdit/" class="essent-help-card essent-help-card--purple" data-keywords="AI ასისტენტი chat ჩატი bot">
-                <span class="essent-help-card__icon-wrap essent-help-card__icon-wrap--purple">
-                    <i class="ti ti-message-chatbot essent-help-card__icon"></i>
-                </span>
-                <div class="essent-help-card__title">AI ასისტენტი</div>
-                <div class="essent-help-card__desc">დაუსვი ნებისმიერი კითხვა</div>
-            </a>
-
-            <a href="/dakavshirdit/" class="essent-help-card" data-keywords="კონტაქტი დაკავშირება call messenger phone">
-                <span class="essent-help-card__icon-wrap">
-                    <i class="ti ti-headset essent-help-card__icon"></i>
-                </span>
-                <div class="essent-help-card__title">დაგვიკავშირდით</div>
-                <div class="essent-help-card__desc">live ჩატი, ზარი ან ფორმა</div>
-            </a>
-
-        </div>
-
-        <div class="essent-help-hub__search">
-            <i class="ti ti-search essent-help-hub__search-icon"></i>
-            <input
-                type="text"
-                id="essent-help-search"
-                class="essent-help-hub__search-input"
-                placeholder="მოძებნე..."
-                autocomplete="off"
-            />
-        </div>
-
-    </div>
-
-    <style>
-        .essent-help-hub {
-            --essent-accent: #e8392f;
-            max-width: 760px;
-            margin: 0 auto;
-            padding: 2.5rem 1rem 3.5rem;
-        }
-
-        .essent-help-hub__header {
-            text-align: center;
-            margin-bottom: 2.25rem;
-        }
-
-        .essent-help-hub__title {
-            font-size: 30px;
-            font-weight: 700;
-            color: #ffffff;
-            margin: 0 0 0.5rem;
-            letter-spacing: -0.01em;
-        }
-
-        .essent-help-hub__subtitle {
-            font-size: 15px;
-            color: rgba(255, 255, 255, 0.55);
-            margin: 0;
-        }
-
-        .essent-help-hub__grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-        }
-
-        @media (max-width: 640px) {
-            .essent-help-hub__grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-        }
-
-        .essent-help-card {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            background: rgba(255, 255, 255, 0.045);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255, 255, 255, 0.09);
-            border-radius: 16px;
-            padding: 22px 18px;
-            text-decoration: none;
-            color: inherit;
-            transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
-            overflow: hidden;
-        }
-
-        .essent-help-card--hidden {
-            display: none !important;
-        }
-
-        /* Base sheen, present on every card regardless of category */
-        .essent-help-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 55%);
-            pointer-events: none;
-        }
-
-        .essent-help-card:hover {
-            border-color: rgba(255, 255, 255, 0.22);
-            background: rgba(255, 255, 255, 0.07);
-            transform: translateY(-3px);
-        }
-
-        /* ===== Whole-card tint — subtle, 40% color / 60% gray, same top-left origin ===== */
-
-        .essent-help-card--green {
-            background: linear-gradient(135deg, rgba(94, 212, 154, 0.16) 0%, rgba(255, 255, 255, 0.045) 70%);
-        }
-        .essent-help-card--green:hover {
-            background: linear-gradient(135deg, rgba(94, 212, 154, 0.22) 0%, rgba(255, 255, 255, 0.07) 70%);
-        }
-
-        .essent-help-card--blue {
-            background: linear-gradient(135deg, rgba(96, 165, 250, 0.16) 0%, rgba(255, 255, 255, 0.045) 70%);
-        }
-        .essent-help-card--blue:hover {
-            background: linear-gradient(135deg, rgba(96, 165, 250, 0.22) 0%, rgba(255, 255, 255, 0.07) 70%);
-        }
-
-        .essent-help-card--orange {
-            background: linear-gradient(135deg, rgba(255, 168, 92, 0.16) 0%, rgba(255, 255, 255, 0.045) 70%);
-        }
-        .essent-help-card--orange:hover {
-            background: linear-gradient(135deg, rgba(255, 168, 92, 0.22) 0%, rgba(255, 255, 255, 0.07) 70%);
-        }
-
-        .essent-help-card--purple {
-            background: linear-gradient(135deg, rgba(168, 120, 255, 0.16) 0%, rgba(255, 255, 255, 0.045) 70%);
-        }
-        .essent-help-card--purple:hover {
-            background: linear-gradient(135deg, rgba(168, 120, 255, 0.22) 0%, rgba(255, 255, 255, 0.07) 70%);
-        }
-
-        .essent-help-card__icon-wrap {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 14px;
-            transition: filter 0.2s ease, border-color 0.2s ease;
-        }
-
-        /* ===== Icon badge tint — bold, 70% color / 30% gray, same top-left origin ===== */
-
-        .essent-help-card__icon-wrap--purple {
-            background: linear-gradient(135deg, rgba(168, 120, 255, 0.70) 0%, rgba(255, 255, 255, 0.07) 55%);
-            border-color: rgba(168, 120, 255, 0.45);
-        }
-
-        .essent-help-card__icon-wrap--green {
-            background: linear-gradient(135deg, rgba(94, 212, 154, 0.70) 0%, rgba(255, 255, 255, 0.07) 55%);
-            border-color: rgba(94, 212, 154, 0.42);
-        }
-
-        .essent-help-card__icon-wrap--blue {
-            background: linear-gradient(135deg, rgba(96, 165, 250, 0.70) 0%, rgba(255, 255, 255, 0.07) 55%);
-            border-color: rgba(96, 165, 250, 0.45);
-        }
-
-        .essent-help-card__icon-wrap--orange {
-            background: linear-gradient(135deg, rgba(255, 168, 92, 0.70) 0%, rgba(255, 255, 255, 0.07) 55%);
-            border-color: rgba(255, 168, 92, 0.45);
-        }
-
-        .essent-help-card:hover .essent-help-card__icon-wrap {
-            filter: brightness(1.2);
-        }
-
-        .essent-help-card__icon {
-            font-size: 22px;
-            color: #ffffff;
-            display: block;
-        }
-
-        .essent-help-card__title {
-            font-weight: 600;
-            font-size: 16px;
-            line-height: 1.3;
-            color: #ffffff;
-            margin-bottom: 5px;
-            letter-spacing: -0.005em;
-        }
-
-        .essent-help-card__desc {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-            line-height: 1.4;
-        }
-
-        .essent-help-hub__search {
-            position: relative;
-            max-width: 420px;
-            margin: 2.25rem auto 0;
-        }
-
-        .essent-help-hub__search-icon {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 18px;
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .essent-help-hub__search-input {
-            width: 100%;
-            height: 50px;
-            padding: 0 18px 0 46px;
-            background: rgba(255, 255, 255, 0.045);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255, 255, 255, 0.09);
-            border-radius: 14px;
-            color: #ffffff;
-            font-size: 15px;
-            box-sizing: border-box;
-            transition: border-color 0.2s ease, background 0.2s ease;
-        }
-
-        .essent-help-hub__search-input::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .essent-help-hub__search-input:focus {
-            outline: none;
-            border-color: rgba(255, 255, 255, 0.22);
-            background: rgba(255, 255, 255, 0.07);
-        }
-    </style>
-
-    <script>
-        (function () {
-            var input = document.getElementById('essent-help-search');
-            if (!input) return;
-
-            var cards = document.querySelectorAll('.essent-help-card');
-
-            input.addEventListener('input', function () {
-                var query = input.value.trim().toLowerCase();
-
-                cards.forEach(function (card) {
-                    var haystack = (
-                        card.querySelector('.essent-help-card__title').textContent + ' ' +
-                        card.querySelector('.essent-help-card__desc').textContent + ' ' +
-                        (card.getAttribute('data-keywords') || '')
-                    ).toLowerCase();
-
-                    var match = query === '' || haystack.indexOf(query) !== -1;
-                    card.classList.toggle('essent-help-card--hidden', !match);
-                });
-            });
-        })();
-    </script>
-
-    <?php
-    return ob_get_clean();
+function openPanel(id){
+  activeZoneId = id;
+  const z = zones.find(x => x.id === id);
+  const s = levelStyle[z.level];
+  document.getElementById('pZoneName').textContent = z.name;
+  document.getElementById('pZoneMeta').textContent = `${z.city} · ${z.reportCount} reports today`;
+  const badge = document.getElementById('pBadge');
+  badge.textContent = s.label;
+  badge.style.background = s.color + '33';
+  badge.style.color = s.color;
+  badge.style.border = `1px solid ${s.color}66`;
+  document.getElementById('pBar').style.width = (z.level/3*100) + '%';
+  document.getElementById('pBar').style.background = s.color;
+  document.getElementById('pUpdated').textContent = 'Last updated ' + z.lastUpdated;
+  panel.classList.add('open');
 }
-add_shortcode('essent_help_hub', 'essent_help_hub_shortcode');
+
+document.getElementById('closePanel').onclick = () => panel.classList.remove('open');
+
+document.querySelectorAll('.rbtn').forEach(btn => {
+  btn.onclick = () => {
+    if(!activeZoneId) return;
+    const z = zones.find(x => x.id === activeZoneId);
+    z.level = parseInt(btn.dataset.level);
+    z.reportCount += 1;
+    z.lastUpdated = 'just now';
+    markers[z.id].setIcon(L.divIcon({ html: markerHtml(z.level), className:'', iconSize:[0,0] }));
+    openPanel(z.id);
+  };
+});
+</script>
+</body>
+</html>
