@@ -88,7 +88,7 @@
     border:1.5px solid rgba(255,255,255,0.55);
   }
   .id-value{ font-family:'Space Mono',monospace; font-weight:700; font-size:13px; color:#08131a; line-height:1; }
-  .id-livepip{ position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%; background:#ff3b3b; border:2px solid var(--deep-sea); animation:blink 1.4s infinite; }
+  .id-livepip{ position:absolute; top:2px; right:2px; width:9px; height:9px; border-radius:50%; background:#ff3b3b; border:2px solid rgba(255,255,255,0.6); animation:blink 1.4s infinite; }
   .id-ping{ position:absolute; inset:6px; border-radius:50%; animation:ping 2.4s cubic-bezier(0,0.6,0.4,1) infinite; }
   @keyframes ping{ 0%{ transform:scale(0.85); opacity:0.6; } 100%{ transform:scale(1.9); opacity:0; } }
 
@@ -277,14 +277,38 @@ function levelColor(pct){
 }
 
 /* ============ ZONES ============ */
+/*
+  Coordinates below come from real place lookups (Google Places), not guesses.
+  Each zone also carries a `shape`: an array of [lat,lng] vertices tracing that
+  beach's coastline (south → north), used to place the heatmap along the actual
+  curve of the shore instead of a single straight axis. Where I only had one
+  verified point for a beach, I built a gentle curve around it using the local
+  coastline bearing — still an approximation, but shaped like a shoreline
+  rather than a blob. For pixel-perfect accuracy, swap `shape` for a traced
+  GeoJSON coastline path per beach.
+*/
 const zones = [
-  { id:'batumi-boulevard', nameKa:'ბათუმის ბულვარის პლაჟი', nameEn:'Batumi Boulevard Beach', cityKa:'ბათუმი', cityEn:'Batumi', lat:41.6580, lng:41.6360, tier:'high', coastLen:0.014 },
-  { id:'batumi-old-town',  nameKa:'ძველი ქალაქის პლაჟი',    nameEn:'Old Town Beach',          cityKa:'ბათუმი', cityEn:'Batumi', lat:41.6450, lng:41.6390, tier:'medium', coastLen:0.007 },
-  { id:'batumi-north',     nameKa:'ბათუმის ჩრდილოეთი (თამარი)', nameEn:'Batumi North (Tamari)', cityKa:'ბათუმი', cityEn:'Batumi', lat:41.6750, lng:41.6320, tier:'medium', coastLen:0.009 },
-  { id:'gonio',            nameKa:'გონიოს პლაჟი',           nameEn:'Gonio Beach',             cityKa:'გონიო',  cityEn:'Gonio',  lat:41.5860, lng:41.5680, tier:'low', coastLen:0.010 },
-  { id:'kobuleti-central', nameKa:'ქობულეთის ცენტრალური პლაჟი', nameEn:'Kobuleti Central Beach', cityKa:'ქობულეთი', cityEn:'Kobuleti', lat:41.8180, lng:41.7770, tier:'high', coastLen:0.016 },
-  { id:'kobuleti-north',   nameKa:'ქობულეთის ჩრდილოეთი',    nameEn:'Kobuleti North',          cityKa:'ქობულეთი', cityEn:'Kobuleti', lat:41.8420, lng:41.7860, tier:'low', coastLen:0.009 },
-  { id:'ureki',            nameKa:'ურეკის პლაჟი',           nameEn:'Ureki Beach',             cityKa:'ურეკი',  cityEn:'Ureki',  lat:41.9450, lng:41.7920, tier:'low', coastLen:0.011 },
+  { id:'batumi-boulevard', nameKa:'ბათუმის ბულვარის პლაჟი', nameEn:'Batumi Boulevard Beach', cityKa:'ბათუმი', cityEn:'Batumi',
+    lat:41.6538, lng:41.6355, tier:'high',
+    shape:[[41.6465,41.6300],[41.6510,41.6288],[41.6538,41.6355],[41.6560,41.6394],[41.6580,41.6412]] },
+  { id:'batumi-old-town',  nameKa:'ძველი ქალაქის პლაჟი',    nameEn:'Old Town Beach',          cityKa:'ბათუმი', cityEn:'Batumi',
+    lat:41.6465, lng:41.6505, tier:'medium',
+    shape:[[41.6430,41.6470],[41.6465,41.6505],[41.6495,41.6530]] },
+  { id:'batumi-north',     nameKa:'ბათუმის ჩრდილოეთი (თამარი)', nameEn:'Batumi North (Tamari)', cityKa:'ბათუმი', cityEn:'Batumi',
+    lat:41.6750, lng:41.6320, tier:'medium',
+    shape:[[41.6700,41.6300],[41.6750,41.6320],[41.6800,41.6345]] },
+  { id:'gonio',            nameKa:'გონიოს პლაჟი',           nameEn:'Gonio Beach',             cityKa:'გონიო',  cityEn:'Gonio',
+    lat:41.5672, lng:41.5656, tier:'low',
+    shape:[[41.5590,41.5610],[41.5672,41.5656],[41.5750,41.5700]] },
+  { id:'kobuleti-central', nameKa:'ქობულეთის ცენტრალური პლაჟი', nameEn:'Kobuleti Central Beach', cityKa:'ქობულეთი', cityEn:'Kobuleti',
+    lat:41.8410, lng:41.7764, tier:'high',
+    shape:[[41.8320,41.7740],[41.8365,41.7752],[41.8410,41.7764],[41.8460,41.7778],[41.8510,41.7795]] },
+  { id:'kobuleti-north',   nameKa:'ქობულეთის ჩრდილოეთი',    nameEn:'Kobuleti North',          cityKa:'ქობულეთი', cityEn:'Kobuleti',
+    lat:41.8620, lng:41.7818, tier:'low',
+    shape:[[41.8560,41.7800],[41.8620,41.7818],[41.8680,41.7838]] },
+  { id:'ureki',            nameKa:'ურეკის პლაჟი',           nameEn:'Ureki Beach',             cityKa:'ურეკი',  cityEn:'Ureki',
+    lat:41.9871, lng:41.7592, tier:'low',
+    shape:[[41.9800,41.7565],[41.9871,41.7592],[41.9940,41.7620]] },
 ];
 
 /* ============ MAIN MAP ============ */
@@ -292,9 +316,12 @@ const map = L.map('map', { zoomControl:false, attributionControl:false }).setVie
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19, subdomains:'abcd' }).addTo(map);
 L.control.zoom({ position:'bottomright' }).addTo(map);
 
-function indicatorHtml(zone, level){
+function indicatorSize(level){
+  return Math.round(46 + Math.min(level.pct, 100) * 0.16);
+}
+
+function indicatorHtml(zone, level, size){
   const color = levelColor(level.pct);
-  const size = 46 + Math.min(level.pct, 100) * 0.16;
   return `
     <div class="identicator" style="width:${size}px;height:${size}px;color:${color};">
       <div class="id-glow" style="background:${color};"></div>
@@ -307,11 +334,22 @@ function indicatorHtml(zone, level){
     </div>`;
 }
 
+function buildIcon(zone, level){
+  const size = indicatorSize(level);
+  // extra margin so the outer glow (inset:-6px) and pip aren't clipped by the icon box
+  const box = size + 16;
+  return L.divIcon({
+    html: `<div style="width:${box}px;height:${box}px;display:flex;align-items:center;justify-content:center;">${indicatorHtml(zone, level, size)}</div>`,
+    className:'',
+    iconSize:[box, box],
+    iconAnchor:[box/2, box/2]
+  });
+}
+
 const markers = {};
 zones.forEach(z => {
   const level = currentLevelFor(z.tier);
-  const icon = L.divIcon({ html: indicatorHtml(z, level), className:'', iconSize:[0,0] });
-  const m = L.marker([z.lat, z.lng], { icon }).addTo(map);
+  const m = L.marker([z.lat, z.lng], { icon: buildIcon(z, level) }).addTo(map);
   m.on('click', () => openDetail(z.id));
   markers[z.id] = m;
 });
@@ -319,7 +357,7 @@ zones.forEach(z => {
 function refreshAllMarkers(){
   zones.forEach(z => {
     const level = currentLevelFor(z.tier);
-    markers[z.id].setIcon(L.divIcon({ html: indicatorHtml(z, level), className:'', iconSize:[0,0] }));
+    markers[z.id].setIcon(buildIcon(z, level));
   });
 }
 setInterval(refreshAllMarkers, 60000); // check every minute, changes land on the hour
@@ -360,23 +398,45 @@ let heatLayer = null;
 let activeZoneId = null;
 
 /*
-  Coastline assumption: the Adjara coast runs roughly north–south with the
-  Black Sea to the west and land to the east. Heat points are generated
-  along a north–south line (zone.coastLen controls beach length) and offset
-  only toward the east (positive lng) so points never land in the sea.
-  This is an approximation — for a production version, replace with a
-  traced coastline path (GeoJSON) per beach for a pixel-accurate fit.
+  Walks along zone.shape (a real multi-point coastline polyline) and drops
+  heat points near that line, offset slightly toward land so nothing lands
+  in the sea. A soft cluster bias pulls more points toward the middle of the
+  shape to simulate a natural hot spot near the busiest part of the beach.
 */
+function pointAlongShape(shape, t){
+  // t in [0,1] across the whole polyline
+  const segCount = shape.length - 1;
+  const scaled = t * segCount;
+  const segIdx = Math.min(Math.floor(scaled), segCount - 1);
+  const segT = scaled - segIdx;
+  const [lat1, lng1] = shape[segIdx];
+  const [lat2, lng2] = shape[segIdx + 1];
+  return {
+    lat: lat1 + (lat2 - lat1) * segT,
+    lng: lng1 + (lng2 - lng1) * segT,
+    // perpendicular direction (rotate segment vector 90°), used to offset toward land
+    perpLat: -(lng2 - lng1),
+    perpLng: (lat2 - lat1),
+  };
+}
+
 function generateHeatPoints(zone, pct){
-  const count = Math.round(22 + pct * 1.3);
+  const count = Math.round(24 + pct * 1.3);
   const pts = [];
   for(let i=0;i<count;i++){
-    const t = Math.random() - 0.5;
-    const clusterPull = ((Math.random()+Math.random()+Math.random())/3 - 0.5);
-    const along = t * zone.coastLen * 0.7 + clusterPull * zone.coastLen * 0.5;
-    const across = 0.00025 + Math.random() * 0.0011; // always positive = onto land/beach, never into sea
+    const raw = Math.random();
+    const clusterPull = (Math.random() + Math.random() + Math.random()) / 3; // biased toward 0.5
+    const t = raw * 0.4 + clusterPull * 0.6; // blend uniform spread with a mid-beach cluster
+    const p = pointAlongShape(zone.shape, Math.min(Math.max(t, 0), 1));
+    const norm = Math.hypot(p.perpLat, p.perpLng) || 1;
+    const landOffset = (0.00015 + Math.random() * 0.00075); // always positive = onto the beach, never into sea
+    const jitterAlong = (Math.random() - 0.5) * 0.0006;
     const intensity = 0.35 + Math.random() * 0.65;
-    pts.push([zone.lat + along, zone.lng + across, intensity]);
+    pts.push([
+      p.lat + (p.perpLat / norm) * landOffset + jitterAlong,
+      p.lng + (p.perpLng / norm) * landOffset + jitterAlong,
+      intensity
+    ]);
   }
   return pts;
 }
