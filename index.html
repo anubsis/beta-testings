@@ -289,8 +289,10 @@ function levelColor(pct){
 */
 const zones = [
   { id:'batumi-boulevard', nameKa:'ბათუმის ბულვარის პლაჟი', nameEn:'Batumi Boulevard Beach', cityKa:'ბათუმი', cityEn:'Batumi',
-    lat:41.6538, lng:41.6355, tier:'high',
-    shape:[[41.6465,41.6300],[41.6510,41.6288],[41.6538,41.6355],[41.6560,41.6394],[41.6580,41.6412]] },
+    lat:41.6508, lng:41.6318, tier:'high',
+    // South → north curved boulevard shoreline. The denser vertices keep the
+    // heat trace visually attached to the coast instead of a straight blob.
+    shape:[[41.6384,41.6062],[41.6404,41.6114],[41.6427,41.6178],[41.6450,41.6235],[41.6467,41.6284],[41.6487,41.6310],[41.6508,41.6318],[41.6528,41.6350],[41.6551,41.6385],[41.6574,41.6405],[41.6596,41.6417]] },
   { id:'batumi-old-town',  nameKa:'ძველი ქალაქის პლაჟი',    nameEn:'Old Town Beach',          cityKa:'ბათუმი', cityEn:'Batumi',
     lat:41.6465, lng:41.6505, tier:'medium',
     shape:[[41.6430,41.6470],[41.6465,41.6505],[41.6495,41.6530]] },
@@ -349,7 +351,9 @@ function buildIcon(zone, level){
 const markers = {};
 zones.forEach(z => {
   const level = currentLevelFor(z.tier);
-  const m = L.marker([z.lat, z.lng], { icon: buildIcon(z, level) }).addTo(map);
+  const anchor = getZoneAnchor(z);
+  // Indicators sit on the traced shore rather than on a separate, hand-placed point.
+  const m = L.marker([anchor.lat, anchor.lng], { icon: buildIcon(z, level) }).addTo(map);
   m.on('click', () => openDetail(z.id));
   markers[z.id] = m;
 });
@@ -395,6 +399,7 @@ window.addEventListener('load', () => setTimeout(requestLocation, 500));
 /* ============ DETAIL OVERLAY + COASTLINE HEATMAP ============ */
 let detailMapInstance = null;
 let heatLayer = null;
+let detailAnchorMarker = null;
 let activeZoneId = null;
 
 /*
@@ -403,21 +408,46 @@ let activeZoneId = null;
   in the sea. A soft cluster bias pulls more points toward the middle of the
   shape to simulate a natural hot spot near the busiest part of the beach.
 */
-function pointAlongShape(shape, t){
-  // t in [0,1] across the whole polyline
-  const segCount = shape.length - 1;
-  const scaled = t * segCount;
-  const segIdx = Math.min(Math.floor(scaled), segCount - 1);
-  const segT = scaled - segIdx;
-  const [lat1, lng1] = shape[segIdx];
-  const [lat2, lng2] = shape[segIdx + 1];
-  return {
-    lat: lat1 + (lat2 - lat1) * segT,
-    lng: lng1 + (lng2 - lng1) * segT,
-    // perpendicular direction (rotate segment vector 90°), used to offset toward land
-    perpLat: -(lng2 - lng1),
-    perpLng: (lat2 - lat1),
-  };
+function catmullRom(p0, p1, p2, p3, t){
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return [0, 1].map(i => 0.5 * (
+    (2 * p1[i]) +
+    (-p0[i] + p2[i]) * t +
+    (2 * p0[i] - 5 * p1[i] + 4 * p2[i] - p3[i]) * t2 +
+    (-p0[i] + 3 * p1[i] - 3 * p2[i] + p3[i]) * t3
+  ));
+}
+
+function smoothCoastPoint(shape, progress){
+  const segments = shape.length - 1;
+  const scaled = Math.min(Math.max(progress, 0), 1) * segments;
+  const index = Math.min(Math.floor(scaled), segments - 1);
+  const localT = scaled - index;
+  const point = catmullRom(
+    shape[Math.max(0, index - 1)],
+    shape[index],
+    shape[index + 1],
+    shape[Math.min(shape.length - 1, index + 2)],
+    localT
+  );
+  const nextProgress = Math.min(progress + 0.002, 1);
+  const nextScaled = nextProgress * segments;
+  const nextIndex = Math.min(Math.floor(nextScaled), segments - 1);
+  const next = catmullRom(
+    shape[Math.max(0, nextIndex - 1)],
+    shape[nextIndex],
+    shape[Math.min(shape.length - 1, nextIndex + 1)],
+    shape[Math.min(shape.length - 1, nextIndex + 2)],
+    nextScaled - nextIndex
+  );
+  const tangentLat = next[0] - point[0];
+  const tangentLng = next[1] - point[1];
+  return { lat:point[0], lng:point[1], tangentLat, tangentLng, perpLat:-tangentLng, perpLng:tangentLat };
+}
+
+function getZoneAnchor(zone){
+  return smoothCoastPoint(zone.shape, 0.5);
 }
 
 function generateHeatPoints(zone, pct){
@@ -427,14 +457,15 @@ function generateHeatPoints(zone, pct){
     const raw = Math.random();
     const clusterPull = (Math.random() + Math.random() + Math.random()) / 3; // biased toward 0.5
     const t = raw * 0.4 + clusterPull * 0.6; // blend uniform spread with a mid-beach cluster
-    const p = pointAlongShape(zone.shape, Math.min(Math.max(t, 0), 1));
+    const p = smoothCoastPoint(zone.shape, Math.min(Math.max(t, 0), 1));
     const norm = Math.hypot(p.perpLat, p.perpLng) || 1;
-    const landOffset = (0.00015 + Math.random() * 0.00075); // always positive = onto the beach, never into sea
-    const jitterAlong = (Math.random() - 0.5) * 0.0006;
+    const tangentNorm = Math.hypot(p.tangentLat, p.tangentLng) || 1;
+    const landOffset = (0.00012 + Math.random() * 0.00045); // positive = inland, never into sea
+    const alongOffset = (Math.random() - 0.5) * 0.00028;
     const intensity = 0.35 + Math.random() * 0.65;
     pts.push([
-      p.lat + (p.perpLat / norm) * landOffset + jitterAlong,
-      p.lng + (p.perpLng / norm) * landOffset + jitterAlong,
+      p.lat + (p.perpLat / norm) * landOffset + (p.tangentLat / tangentNorm) * alongOffset,
+      p.lng + (p.perpLng / norm) * landOffset + (p.tangentLng / tangentNorm) * alongOffset,
       intensity
     ]);
   }
@@ -444,6 +475,7 @@ function generateHeatPoints(zone, pct){
 function openDetail(id, refreshOnly){
   activeZoneId = id;
   const zone = zones.find(z => z.id === id);
+  const anchor = getZoneAnchor(zone);
   const level = currentLevelFor(zone.tier);
   const color = levelColor(level.pct);
 
@@ -463,7 +495,7 @@ function openDetail(id, refreshOnly){
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19, subdomains:'abcd' }).addTo(detailMapInstance);
       L.control.zoom({ position:'bottomright' }).addTo(detailMapInstance);
     }
-    detailMapInstance.setView([zone.lat, zone.lng], 15.3);
+    detailMapInstance.setView([anchor.lat, anchor.lng], 15.3);
     detailMapInstance.invalidateSize();
 
     if(heatLayer){ detailMapInstance.removeLayer(heatLayer); }
@@ -474,7 +506,8 @@ function openDetail(id, refreshOnly){
       gradient: { 0.2:'#0d3b4f', 0.45:'#4fd1a5', 0.7:'#ffb648', 1.0:'#ff3b3b' }
     }).addTo(detailMapInstance);
 
-    L.marker([zone.lat, zone.lng], {
+    if(detailAnchorMarker){ detailMapInstance.removeLayer(detailAnchorMarker); }
+    detailAnchorMarker = L.marker([anchor.lat, anchor.lng], {
       icon: L.divIcon({ html:'<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid '+color+';"></div>', className:'', iconSize:[10,10] })
     }).addTo(detailMapInstance);
   }, 120);
